@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; case \"$f\" in */backend/*.py) (cd backend && .venv/bin/python -m ruff format \"$f\" && .venv/bin/python -m ruff check --fix \"$f\") ;; esac; } 2>/dev/null || true",
+            "statusMessage": "Running ruff format + check..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; case \"$f\" in */backend/*) (cd backend && python -m pytest -q) ;; esac; } 2>/dev/null || true",
+            "statusMessage": "Running backend tests..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read -r f; case \"$f\" in */.env|.env) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Editing .env is blocked: it may contain real local secrets. Edit .env.example instead.\"}}'; exit 0 ;; esac; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
